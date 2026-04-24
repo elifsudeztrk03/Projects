@@ -1,46 +1,203 @@
-# Arduino Temperature LCD Display
+# Arduino Temperature Monitoring System with LCD
 
 ## Overview
 
-This project is an embedded system simulation developed using Arduino and Tinkercad.  
-The system reads temperature data from an analog temperature sensor and displays the measured temperature value on a 16x2 LCD screen.
+This project is an Arduino-based embedded system simulation designed in Tinkercad.  
+The system measures the ambient temperature using an analog temperature sensor and displays the calculated temperature value on a 16x2 LCD screen.
 
-The main purpose of this project is to practice sensor interfacing, analog signal reading, LCD control, and basic embedded system design using Arduino.
+The project demonstrates basic embedded system concepts such as analog sensor reading, ADC conversion, temperature calculation, LCD interfacing, and real-time data display.
 
-## Project Objectives
+The circuit was built and tested in Tinkercad Circuits, and the program was written in Arduino C/C++ using text-based coding.
 
-- Design an Arduino-based temperature monitoring system
-- Read analog temperature data from a temperature sensor
-- Convert the analog sensor value into temperature in Celsius
-- Display the measured temperature value on a 16x2 LCD screen
-- Simulate the complete circuit in Tinkercad
-- Use the LiquidCrystal library for LCD control
+## Project Purpose
+
+The main purpose of this project is to design a simple temperature monitoring system using Arduino.  
+The Arduino reads the analog output voltage of the temperature sensor, converts this value into temperature in Celsius, and continuously updates the LCD display.
+
+This type of system represents a basic example of an embedded system because it collects data from a sensor, processes the data using a microcontroller, and gives an output through a display.
+
+## Features
+
+- Reads analog temperature sensor data
+- Converts raw ADC values into voltage
+- Calculates temperature in Celsius
+- Displays temperature on a 16x2 LCD screen
+- Updates the displayed value continuously
+- Simulated using Tinkercad Circuits
+- Uses the `LiquidCrystal` library for LCD control
 
 ## Tools and Components Used
 
+### Hardware / Simulation Components
+
 - Arduino Uno
-- Temperature sensor
+- TMP36 temperature sensor
 - 16x2 LCD display
 - Potentiometer for LCD contrast adjustment
 - Breadboard
 - Jumper wires
 - Tinkercad Circuits
+
+### Software
+
 - Arduino C/C++
+- Tinkercad Circuits
 - LiquidCrystal library
 
 ## Circuit Description
 
-The temperature sensor is connected to the analog input pin of the Arduino.  
-The Arduino reads the analog voltage value using `analogRead()`, converts this value into voltage, and then calculates the temperature in Celsius.
+The temperature sensor is connected to the analog input pin A0 of the Arduino.  
+The sensor produces an analog voltage depending on the measured temperature.
 
-The calculated temperature value is displayed on a 16x2 LCD screen.  
-A potentiometer is used to adjust the LCD contrast for better visibility.
+The Arduino reads this analog voltage using the `analogRead()` function. Since Arduino Uno has a 10-bit ADC, the analog input value is represented between 0 and 1023.
 
-## Code Explanation
+The 16x2 LCD is connected to the Arduino using digital pins.  
+The `LiquidCrystal` library is used to control the LCD and print the temperature value.
 
-The project uses the `LiquidCrystal` library to control the LCD display.
+A potentiometer is used to adjust the contrast of the LCD screen so that the displayed text can be clearly seen.
 
-The Arduino reads the sensor value from analog pin A0:
+## Pin Connections
+
+| Component | Arduino Pin |
+|---|---|
+| Temperature Sensor Output | A0 |
+| LCD RS | D12 |
+| LCD Enable | D11 |
+| LCD D4 | D5 |
+| LCD D5 | D4 |
+| LCD D6 | D3 |
+| LCD D7 | D2 |
+| LCD VCC | 5V |
+| LCD GND | GND |
+
+## Working Principle
+
+The Arduino reads the analog value from the temperature sensor:
 
 ```cpp
 int raw = analogRead(A0);
+```
+
+Then, the raw ADC value is converted into voltage:
+
+```cpp
+float voltage = raw * (5.0 / 1023.0);
+```
+
+For a TMP36-type temperature sensor, the output voltage has a 500 mV offset.  
+Therefore, the temperature in Celsius is calculated using:
+
+```cpp
+float tempC = (voltage - 0.5) * 100.0;
+```
+
+Finally, the calculated temperature is displayed on the LCD:
+
+```cpp
+lcd.setCursor(0, 0);
+lcd.print("Temperature:");
+
+lcd.setCursor(0, 1);
+lcd.print(tempC);
+lcd.print(" C");
+```
+
+The display is updated every 500 milliseconds:
+
+```cpp
+delay(500);
+```
+
+## Code Structure
+
+The program consists of two main parts:
+
+### 1. Setup Function
+
+In the `setup()` function, the LCD is initialized as a 16-column and 2-row display.
+
+```cpp
+void setup() {
+  lcd.begin(16, 2);
+}
+```
+
+### 2. Loop Function
+
+In the `loop()` function:
+
+1. The analog temperature sensor value is read.
+2. The raw ADC value is converted into voltage.
+3. The voltage is converted into temperature in Celsius.
+4. The temperature value is printed on the LCD.
+5. The system waits for 500 ms before updating the value again.
+
+## Files
+
+| File | Description |
+|---|---|
+| `Arduino_Temperature_LCD.ino` | Arduino source code |
+| `Termometer_Led_Screen.png` | Screenshot of the working Tinkercad simulation |
+| `homework-2.pdf` | Assignment description |
+| `tinkercad-link.txt` | Shareable Tinkercad simulation link |
+| `README.md` | Project documentation |
+
+## Simulation Result
+
+The simulation successfully displays the measured temperature value on the LCD screen.
+
+In the sample output, the LCD shows:
+
+```text
+Temperature:
+24.78 C
+```
+
+This confirms that the Arduino reads the sensor value correctly, processes the analog input, calculates the temperature, and displays the result on the LCD.
+
+## How to Run the Project
+
+1. Open the Tinkercad project link.
+2. Start the simulation.
+3. Observe the temperature value displayed on the LCD.
+4. Change the temperature sensor value in Tinkercad.
+5. The LCD will update the displayed temperature automatically.
+
+## Tinkercad Simulation Link
+
+Add the shareable Tinkercad project link here:
+
+```text
+Tinkercad Link: [Paste your link here]
+```
+
+## What I Learned
+
+Through this project, I practiced:
+
+- Basic embedded system design
+- Arduino programming
+- Analog sensor interfacing
+- ADC value conversion
+- Temperature calculation from sensor voltage
+- LCD display control
+- Using the LiquidCrystal library
+- Circuit simulation with Tinkercad
+- Real-time data display in embedded systems
+
+## Possible Improvements
+
+This project can be improved by adding:
+
+- Temperature warning messages
+- LED indicators for temperature levels
+- Buzzer alarm for high temperature
+- Celsius/Fahrenheit conversion
+- Data logging
+- More accurate sensor calibration
+
+## Author
+
+Elif Sude ÖZTÜRK  
+Electronics and Communications Engineering  
+Izmir Institute of Technology
