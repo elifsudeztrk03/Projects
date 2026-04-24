@@ -1,110 +1,123 @@
-# LTI Filter Design and Simulation with LTspice
+# Audio Signal Analysis and GUI-Based Filtering with MATLAB
 
 ## Overview
 
-This project focuses on the design and simulation of continuous-time Linear Time-Invariant (LTI) systems using active Butterworth filters. The main objective is to separate individual frequency components from a composite input signal consisting of 500 Hz, 2 kHz, and 10 kHz sinusoidal signals.
+This project focuses on the analysis and filtering of a real audio signal using MATLAB.  
+An audio recording consisting of eight successive musical notes was recorded, analyzed in both time and frequency domains, and processed using a digital Butterworth bandpass filter.
 
-To achieve this, three different active filter structures were designed and analyzed:
+The main objective of the project is to determine the fundamental frequencies of musical notes, compare the measured values with theoretical frequencies, and isolate a selected note from the original audio signal.
 
-- 2nd-order low-pass Butterworth filter for extracting the 500 Hz component
-- 2nd-order high-pass Butterworth filter for extracting the 10 kHz component
-- 4th-order band-pass Butterworth filter for extracting the 2 kHz component
+A MATLAB-based graphical user interface (GUI) was also developed to make the signal analysis and filtering process more interactive.
 
-The circuit designs were implemented and verified using LTspice through both time-domain and frequency-domain simulations.
+## Project Objectives
 
-## Project Purpose
-
-The goal of this project is to design filters that pass the desired frequency component while attenuating the unwanted frequency components.
-
-The composite input signal includes:
-
-- 500 Hz component
-- 2 kHz component
-- 10 kHz component
-
-Each filter was designed to isolate one of these components.
+- Record and analyze a real audio signal containing musical notes
+- Segment the audio signal into individual note regions
+- Analyze the signal in the time domain
+- Apply Fast Fourier Transform (FFT) for frequency-domain analysis
+- Determine the fundamental frequency of each note
+- Compare measured frequencies with theoretical note frequencies
+- Design and apply a Butterworth bandpass filter
+- Isolate the selected B4 note from the original audio
+- Develop a MATLAB GUI for visualization and filtering
 
 ## Tools Used
 
-- LTspice
-- Active filter design
-- Butterworth filter theory
-- Bode plot analysis
-- Time-domain waveform analysis
+- MATLAB
+- MATLAB App Designer
+- Signal Processing Toolbox
+- Fast Fourier Transform (FFT)
+- Butterworth bandpass filter
+- Second-order sections (SOS)
+- WAV audio files
 
-## Filter Designs
+## Project Description
 
-### 1. Low-Pass Butterworth Filter
+The original audio signal was recorded as a WAV file and loaded into MATLAB using the `audioread` function.  
+The signal contains eight successive musical notes between C4 and C5.
 
-A 2nd-order low-pass Butterworth filter was designed to pass the 500 Hz component and attenuate higher-frequency components such as 2 kHz and 10 kHz.
+The full signal was first plotted in the time domain to observe the overall structure of the recording. Then, the signal was manually divided into separate note segments. Each note segment was analyzed individually to determine its dominant frequency component.
 
-The simulation results show that the low-pass filter successfully suppresses frequencies above the selected cutoff frequency. However, because the filter order is finite, the unwanted frequency components are attenuated but not completely removed.
+FFT analysis was used to obtain the frequency spectrum of both the complete signal and each individual note. The dominant spectral peak was considered as the measured fundamental frequency of the corresponding note.
 
-### 2. High-Pass Butterworth Filter
+The measured frequencies were compared with theoretical musical note frequencies, and the percentage error was calculated for each note.
 
-A 2nd-order high-pass Butterworth filter was designed to pass the 10 kHz component and suppress lower-frequency components such as 500 Hz and 2 kHz.
+## Digital Filtering
 
-The frequency response confirms that lower-frequency components are attenuated while the high-frequency signal is passed.
+A Butterworth bandpass filter was designed to isolate the selected B4 note from the original audio signal.
 
-### 3. Band-Pass Butterworth Filter
+The filter was designed around the measured fundamental frequency of the target note.  
+A narrow bandwidth was selected to emphasize the B4 note while attenuating the other notes.
 
-A 4th-order band-pass Butterworth filter was designed by cascading a high-pass and a low-pass filter.
+To improve numerical stability, the Butterworth filter was implemented using second-order sections (SOS). This approach provides a more stable filtering operation, especially for higher-order bandpass filters.
 
-The selected passband is approximately:
+## GUI Application
 
-- Lower cutoff frequency: 1 kHz
-- Upper cutoff frequency: 3 kHz
+A MATLAB GUI was developed to make the project more interactive.
 
-This allows the 2 kHz component to pass while attenuating the 500 Hz and 10 kHz components.
+The GUI allows the user to:
 
-## Simulation Results
+- Load a WAV audio file
+- Display the original signal in the time domain
+- Display the original signal in the frequency domain
+- Select the filter type
+- Select the filter order
+- Select the target musical note
+- Apply the selected filter
+- Display the filtered signal in time and frequency domains
+- Play both the original and filtered audio signals
 
-The filters were tested using LTspice simulations. Both Bode plots and voltage-time graphs were used to evaluate the behavior of each filter.
+## Results
 
-The results show that:
+The project successfully analyzed the recorded audio signal and extracted the fundamental frequencies of the notes.
 
-- The low-pass filter passes the 500 Hz component.
-- The high-pass filter passes the 10 kHz component.
-- The band-pass filter passes the 2 kHz component.
-- Unwanted frequencies are attenuated but not completely eliminated due to the finite filter order.
-- Increasing the filter order would improve frequency selectivity and produce cleaner output waveforms.
+The Butterworth bandpass filter was able to isolate the selected B4 note from the original audio.  
+The filtered signal shows that the target note is emphasized while the other notes are significantly attenuated.
+
+Small differences between the measured and theoretical frequencies were observed. These differences may be caused by:
+
+- FFT resolution limitations
+- Background noise during recording
+- Manual segmentation errors
+- Harmonic components
+- Slight tuning differences in the instrument
 
 ## Files
 
 | File | Description |
 |---|---|
-| `HW2_Filter.asc` | LTspice schematic file containing the filter circuits |
-| `HW2_Filter.raw` | LTspice simulation output data |
-| `HW2_Filter.log` | LTspice simulation log file |
-| `HW2_Filter.fft` | FFT-related simulation data |
-| `EE_313_HW2_Report.pdf` | Project report including calculations, circuit design, and simulation results |
-| `images/` | Screenshots of Bode plots and time-domain waveforms |
+| `ElifSudeOZTURK_310206045.m` | Main MATLAB script for audio analysis, FFT, filtering, and GUI operations |
+| `Original_ses.wav` | Original recorded audio signal |
+| `B4_filtered_output.wav` | Filtered output audio file for the selected B4 note |
+| `EE_331_FinalLab_Report.pdf` | Project report including methodology, figures, results, and discussion |
+| `README.md` | Project documentation |
 
-## Example Simulation Outputs
+## Example Outputs
 
-### Low-Pass Filter Bode Plot
+The project includes:
 
-The low-pass filter attenuates frequencies above approximately 500 Hz.
-
-### High-Pass Filter Bode Plot
-
-The high-pass filter attenuates frequencies below approximately 10 kHz.
-
-### Band-Pass Filter Bode Plot
-
-The band-pass filter passes the frequency range between approximately 1 kHz and 3 kHz.
+- Time-domain plot of the original recorded signal
+- Short segment visualization
+- Time-domain plots of each note
+- FFT spectrum of the original signal
+- FFT spectrum of each note
+- Time-domain comparison of original and filtered signals
+- Frequency-domain comparison before and after filtering
+- Frequency comparison table
+- MATLAB GUI for interactive filtering
 
 ## What I Learned
 
-Through this project, I improved my understanding of:
+Through this project, I gained practical experience in:
 
-- Continuous-time LTI systems
-- Butterworth filter design
-- Active filter topologies
-- Cutoff frequency selection
-- Frequency-domain analysis using Bode plots
-- Time-domain signal analysis
-- LTspice circuit simulation
+- Real audio signal analysis
+- Time-domain and frequency-domain signal processing
+- FFT-based frequency estimation
+- Digital Butterworth filter design
+- Bandpass filtering
+- Using second-order sections for stable filter implementation
+- MATLAB GUI development
+- Comparing measured and theoretical musical note frequencies
 
 ## Author
 
