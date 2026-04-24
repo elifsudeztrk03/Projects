@@ -1,0 +1,372 @@
+classdef GUI_app < matlab.apps.AppBase
+
+    % Properties that correspond to app components
+    properties (Access = public)
+        UIFigure                 matlab.ui.Figure
+        UITable                  matlab.ui.control.Table
+        SamplesTextArea          matlab.ui.control.TextArea
+        SamplesTextAreaLabel     matlab.ui.control.Label
+        DurationTextArea         matlab.ui.control.TextArea
+        DurationTextAreaLabel    matlab.ui.control.Label
+        FsTextArea               matlab.ui.control.TextArea
+        FsTextAreaLabel          matlab.ui.control.Label
+        PlayFilteredButton       matlab.ui.control.Button
+        PlayOriginalButton       matlab.ui.control.Button
+        ApplyFilterButton        matlab.ui.control.Button
+        TargetDropDown           matlab.ui.control.DropDown
+        TargetDropDownLabel      matlab.ui.control.Label
+        OrderDropDown            matlab.ui.control.DropDown
+        OrderDropDownLabel       matlab.ui.control.Label
+        FilterTypeDropDown       matlab.ui.control.DropDown
+        FilterTypeDropDownLabel  matlab.ui.control.Label
+        LoadwavButton            matlab.ui.control.Button
+        UIAxes_4                 matlab.ui.control.UIAxes
+        UIAxes_3                 matlab.ui.control.UIAxes
+        UIAxes_2                 matlab.ui.control.UIAxes
+        UIAxes                   matlab.ui.control.UIAxes
+    end
+
+    % Callbacks that handle component events
+    methods (Access = private)
+
+        % Code that executes after component creation
+        function startupFcn(app)
+
+            app.UIFigure.UserData = struct();
+            app.UIFigure.UserData.x  = [];
+            app.UIFigure.UserData.Fs = NaN;
+            app.UIFigure.UserData.t  = [];
+            app.UIFigure.UserData.y  = [];
+        end
+
+        % Button pushed function: LoadwavButton
+        function LoadwavButtonPushed(app, event)
+            [fn, fp] = uigetfile('*.wav','Select your WAV recording');
+            file = fullfile(fp, fn);
+
+            [x, Fs] = audioread(file);
+            
+            if size(x,2) > 1
+                x = mean(x,2);
+            end
+
+            n = length(x); %sample sayısı
+            Duration = n/Fs;
+            t = (0:n-1)/Fs;
+            
+            Note = {"C4";"D4";"E4";"F4";"G4";"A4";"B4";"C5"};
+            Measured_Hz = [261.5476 ; 293.2835 ; 329.3967 ; 350.1892 ; 391.7742 ; 439.9252 ; 494.6423 ; 524.1895];
+            Theoretical_Hz = [261.63 ; 293.66 ; 329.63 ; 349.23 ; 392.00 ; 440.00 ; 493.88 ; 523.25];
+            Error = [0.0315 ; 0.1282 ; 0.0708 ; 0.2747 ; 0.0576 ; 0.017	; 0.1543 ; 0.1796];
+           
+
+            app.UIFigure.UserData.x = x;
+            app.UIFigure.UserData.Fs = Fs;
+            app.UIFigure.UserData.t = t;
+
+            app.FsTextArea.Value = num2str(Fs) + "Hz";
+            app.DurationTextArea.Value = num2str(Duration) + "s";
+            app.SamplesTextArea.Value = num2str(n);
+
+            app.UITable.Data = table(Note,Measured_Hz,Theoretical_Hz,Error);
+
+            plot(app.UIAxes,t,x,'r');
+            grid(app.UIAxes,"on");
+
+            X = fft(x);
+            X = fftshift(X);
+            Xn = length(X);
+            X_f = (-Xn/2:Xn/2-1) * (Fs/Xn);
+
+            plot(app.UIAxes_2,X_f,abs(X),'r');
+            grid(app.UIAxes_2,"on");
+            xlim(app.UIAxes_2,[-1500 1500]);
+
+            
+
+        end
+
+        % Close request function: UIFigure
+        function UIFigureCloseRequest(app, event)
+
+        end
+
+        % Button pushed function: ApplyFilterButton
+        function ApplyFilterButtonPushed(app, event)
+            if isempty(app.UIFigure.UserData.x) || isnan(app.UIFigure.UserData.Fs)
+                uialert(app.UIFigure, 'First you have to load the .wav file.', 'Error');
+                return;
+            end
+        
+            x  = app.UIFigure.UserData.x;
+            Fs = app.UIFigure.UserData.Fs;
+            t  = app.UIFigure.UserData.t;
+        
+            % 2) Target notadan f0 bul
+            noteNames = app.TargetDropDown.Value;
+            order = str2num(app.OrderDropDown.Value);
+            filter_type = app.FilterTypeDropDown.Value;
+
+            if strcmpi(noteNames,'C4')
+                f0 = 261.63;
+            elseif strcmpi(noteNames,'D4')
+                f0 = 293.66;
+            elseif strcmpi(noteNames,'E4')
+                f0 = 329.63;
+            elseif strcmpi(noteNames,'F4')
+                f0 = 349.23;
+            elseif strcmpi(noteNames,'G4')
+                f0 = 392.00;
+            elseif strcmpi(noteNames,'A4')
+                f0 = 440.00;
+            elseif strcmpi(noteNames,'B4')
+                f0 = 493.88;
+            elseif strcmpi(noteNames,'C5')
+                f0 = 523.25;
+            end
+            
+            
+            if strcmpi(filter_type,'Low_pass')
+                Wn = f0/(Fs/2);
+                [b,a] = butter(order, Wn, 'low');
+                app.UIFigure.UserData.y = filtfilt(b,a,x);
+
+    
+            elseif strcmpi(filter_type,'High_pass')
+                Wn = f0/(Fs/2);
+                [b,a] = butter(order, Wn, 'high');
+                app.UIFigure.UserData.y = filtfilt(b,a,x);
+    
+            else % Bandpass
+                DeltaF = 15;                           % +/- bandwidth (Hz)
+
+                bp = [f0-DeltaF f0+DeltaF];
+                Wn = bp/(Fs/2);
+                
+                [A,B,C,D] = butter(order, Wn, 'bandpass');
+                sos = ss2sos(A,B,C,D);
+                y = sosfilt(sos,x);
+                app.UIFigure.UserData.y = y;
+            end
+
+            plot(app.UIAxes_3,t,app.UIFigure.UserData.y,'r');
+            grid(app.UIAxes_3,"on");
+            
+
+            Y = fft(y);
+            Y = fftshift(Y);
+            Y_n = length(Y);
+            Y_f = (-Y_n/2:Y_n/2-1)*(Fs/Y_n);
+
+            plot(app.UIAxes_4,Y_f,abs(Y)/max(abs(Y)),'r');
+            grid(app.UIAxes_4,"on");
+            xlim(app.UIAxes_4,[-1500 1500]);
+
+
+
+        end
+
+        % Button pushed function: PlayOriginalButton
+        function PlayOriginalButtonPushed(app, event)
+            if isempty(app.UIFigure.UserData.x) || isnan(app.UIFigure.UserData.Fs)
+                uialert(app.UIFigure, 'First you have to load the .wav file.', 'Error');
+                return;
+            end
+
+            x = app.UIFigure.UserData.x;
+            Fs = app.UIFigure.UserData.Fs;
+            soundsc(x,Fs);
+        end
+
+        % Button pushed function: PlayFilteredButton
+        function PlayFilteredButtonPushed(app, event)
+            if isempty(app.UIFigure.UserData.y) || isnan(app.UIFigure.UserData.Fs)
+                uialert(app.UIFigure, 'First you have to apply the filter.', 'Error');
+                return;
+            end
+
+            y = app.UIFigure.UserData.y;
+            Fs = app.UIFigure.UserData.Fs;
+            soundsc(y,Fs);
+        end
+    end
+
+    % Component initialization
+    methods (Access = private)
+
+        % Create UIFigure and components
+        function createComponents(app)
+
+            % Create UIFigure and hide until all components are created
+            app.UIFigure = uifigure('Visible', 'off');
+            app.UIFigure.Position = [100 100 822 560];
+            app.UIFigure.Name = 'MATLAB App';
+            app.UIFigure.CloseRequestFcn = createCallbackFcn(app, @UIFigureCloseRequest, true);
+
+            % Create UIAxes
+            app.UIAxes = uiaxes(app.UIFigure);
+            title(app.UIAxes, 'Original(Time)')
+            xlabel(app.UIAxes, 't(s)')
+            ylabel(app.UIAxes, 'Amplitude')
+            zlabel(app.UIAxes, 'Z')
+            app.UIAxes.Position = [91 191 270 160];
+
+            % Create UIAxes_2
+            app.UIAxes_2 = uiaxes(app.UIFigure);
+            title(app.UIAxes_2, 'Original(Frequency)')
+            xlabel(app.UIAxes_2, 'Frequency')
+            ylabel(app.UIAxes_2, '|X(f)|')
+            zlabel(app.UIAxes_2, 'Z')
+            app.UIAxes_2.Position = [481 191 270 160];
+
+            % Create UIAxes_3
+            app.UIAxes_3 = uiaxes(app.UIFigure);
+            title(app.UIAxes_3, 'Filtered(Time)')
+            xlabel(app.UIAxes_3, 't(s)')
+            ylabel(app.UIAxes_3, 'Amplitude')
+            zlabel(app.UIAxes_3, 'Z')
+            app.UIAxes_3.Position = [91 21 270 160];
+
+            % Create UIAxes_4
+            app.UIAxes_4 = uiaxes(app.UIFigure);
+            title(app.UIAxes_4, 'Filtered(Frequency)')
+            xlabel(app.UIAxes_4, 'Frequency')
+            ylabel(app.UIAxes_4, '|Y(f)|')
+            zlabel(app.UIAxes_4, 'Z')
+            app.UIAxes_4.Position = [481 21 270 160];
+
+            % Create LoadwavButton
+            app.LoadwavButton = uibutton(app.UIFigure, 'push');
+            app.LoadwavButton.ButtonPushedFcn = createCallbackFcn(app, @LoadwavButtonPushed, true);
+            app.LoadwavButton.Position = [681 491 110 40];
+            app.LoadwavButton.Text = 'Load wav';
+
+            % Create FilterTypeDropDownLabel
+            app.FilterTypeDropDownLabel = uilabel(app.UIFigure);
+            app.FilterTypeDropDownLabel.HorizontalAlignment = 'right';
+            app.FilterTypeDropDownLabel.FontSize = 9;
+            app.FilterTypeDropDownLabel.Position = [21 509 47 22];
+            app.FilterTypeDropDownLabel.Text = 'Filter Type';
+
+            % Create FilterTypeDropDown
+            app.FilterTypeDropDown = uidropdown(app.UIFigure);
+            app.FilterTypeDropDown.Items = {'Bandpass', 'Low_pass', 'High_pass'};
+            app.FilterTypeDropDown.FontSize = 9;
+            app.FilterTypeDropDown.Position = [83 509 90 22];
+            app.FilterTypeDropDown.Value = 'Bandpass';
+
+            % Create OrderDropDownLabel
+            app.OrderDropDownLabel = uilabel(app.UIFigure);
+            app.OrderDropDownLabel.HorizontalAlignment = 'right';
+            app.OrderDropDownLabel.FontSize = 9;
+            app.OrderDropDownLabel.Position = [41 479 28 22];
+            app.OrderDropDownLabel.Text = 'Order';
+
+            % Create OrderDropDown
+            app.OrderDropDown = uidropdown(app.UIFigure);
+            app.OrderDropDown.Items = {'10', '9', '8', '7', '6', '5', '4'};
+            app.OrderDropDown.FontSize = 9;
+            app.OrderDropDown.Position = [84 479 90 22];
+            app.OrderDropDown.Value = '10';
+
+            % Create TargetDropDownLabel
+            app.TargetDropDownLabel = uilabel(app.UIFigure);
+            app.TargetDropDownLabel.HorizontalAlignment = 'right';
+            app.TargetDropDownLabel.FontSize = 9;
+            app.TargetDropDownLabel.Position = [41 449 30 22];
+            app.TargetDropDownLabel.Text = 'Target';
+
+            % Create TargetDropDown
+            app.TargetDropDown = uidropdown(app.UIFigure);
+            app.TargetDropDown.Items = {'C4', 'D4', 'E4', 'F4', 'G4', 'A4', 'B4', 'C5'};
+            app.TargetDropDown.FontSize = 9;
+            app.TargetDropDown.Position = [86 449 90 22];
+            app.TargetDropDown.Value = 'C4';
+
+            % Create ApplyFilterButton
+            app.ApplyFilterButton = uibutton(app.UIFigure, 'push');
+            app.ApplyFilterButton.ButtonPushedFcn = createCallbackFcn(app, @ApplyFilterButtonPushed, true);
+            app.ApplyFilterButton.Position = [61 419 100 22];
+            app.ApplyFilterButton.Text = 'Apply Filter';
+
+            % Create PlayOriginalButton
+            app.PlayOriginalButton = uibutton(app.UIFigure, 'push');
+            app.PlayOriginalButton.ButtonPushedFcn = createCallbackFcn(app, @PlayOriginalButtonPushed, true);
+            app.PlayOriginalButton.Position = [681 459 110 22];
+            app.PlayOriginalButton.Text = 'Play Original';
+
+            % Create PlayFilteredButton
+            app.PlayFilteredButton = uibutton(app.UIFigure, 'push');
+            app.PlayFilteredButton.ButtonPushedFcn = createCallbackFcn(app, @PlayFilteredButtonPushed, true);
+            app.PlayFilteredButton.Position = [681 429 110 22];
+            app.PlayFilteredButton.Text = 'Play Filtered';
+
+            % Create FsTextAreaLabel
+            app.FsTextAreaLabel = uilabel(app.UIFigure);
+            app.FsTextAreaLabel.HorizontalAlignment = 'right';
+            app.FsTextAreaLabel.Position = [211 517 25 22];
+            app.FsTextAreaLabel.Text = 'Fs:';
+
+            % Create FsTextArea
+            app.FsTextArea = uitextarea(app.UIFigure);
+            app.FsTextArea.Position = [241 521 70 20];
+
+            % Create DurationTextAreaLabel
+            app.DurationTextAreaLabel = uilabel(app.UIFigure);
+            app.DurationTextAreaLabel.HorizontalAlignment = 'right';
+            app.DurationTextAreaLabel.Position = [331 517 54 22];
+            app.DurationTextAreaLabel.Text = 'Duration:';
+
+            % Create DurationTextArea
+            app.DurationTextArea = uitextarea(app.UIFigure);
+            app.DurationTextArea.Position = [390 521 70 20];
+
+            % Create SamplesTextAreaLabel
+            app.SamplesTextAreaLabel = uilabel(app.UIFigure);
+            app.SamplesTextAreaLabel.HorizontalAlignment = 'right';
+            app.SamplesTextAreaLabel.Position = [481 517 55 22];
+            app.SamplesTextAreaLabel.Text = 'Samples:';
+
+            % Create SamplesTextArea
+            app.SamplesTextArea = uitextarea(app.UIFigure);
+            app.SamplesTextArea.Position = [541 521 70 20];
+
+            % Create UITable
+            app.UITable = uitable(app.UIFigure);
+            app.UITable.ColumnName = {'Note'; 'Measured_Hz'; 'Theoretical_Hz'; 'Error%'};
+            app.UITable.RowName = {};
+            app.UITable.Position = [231 381 430 130];
+
+            % Show the figure after all components are created
+            app.UIFigure.Visible = 'on';
+        end
+    end
+
+    % App creation and deletion
+    methods (Access = public)
+
+        % Construct app
+        function app = GUI_app
+
+            % Create UIFigure and components
+            createComponents(app)
+
+            % Register the app with App Designer
+            registerApp(app, app.UIFigure)
+
+            % Execute the startup function
+            runStartupFcn(app, @startupFcn)
+
+            if nargout == 0
+                clear app
+            end
+        end
+
+        % Code that executes before app deletion
+        function delete(app)
+
+            % Delete UIFigure when app is deleted
+            delete(app.UIFigure)
+        end
+    end
+end
